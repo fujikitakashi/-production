@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="utf-8"> 
+        <link rel="stylesheet" href="style.css">
+        <link rel="icon" href="image/icon.png">
+        <script src="jquery-3.4.1.js"></script>
+        <script src="sld.js"></script>
+        <title>Asset Management</title>
+    </head>
+    <body>
+        <div id="home" class="bg-slider big-bg current">
+        <header class="page-header wrapper2">
+            <nav>
+               <ul class="nav snip1189">
+                    <a href="index.html"><li class="navli">トップ</li></a>
+                     <a href="why.html"><li class="navli">なぜ必要なのか？</li></a>
+                    <a href="osusume.html"><li class="navli">オススメの資産運用</li></a>
+                   <a href="notosusume.html"><li class="navli">オススメしない資産運用</li></a>
+                </ul>
+            </nav>
+        </header>
+        <div class="home-content wrapper">
+            <h2 class="page-title">Asset Management</h2>
+            <p>元銀行員が初心者にオススメの資産運用を紹介します</p><br><br><br>
+            <a class="button" href="why.html">なぜ必要なのか？</a>
+        </div>
+        </div>
+        <script>
+jQuery(function($) {
+    $('.bg-slider').bgSwitcher({
+        images: ['image/sld2.jpg','image/sld1.jpg','image/sld5.jpg','image/sld3.jpg'], // 切り替える背景画像を指定
+    });
+});
+</script>
+        <script src="script.js"></script>
+    </body>
+</html>
