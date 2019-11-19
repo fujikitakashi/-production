@@ -1,413 +1,559 @@
-@charset(utf-8);
+/*!
+ * jQuery.BgSwitcher
+ *
+ * @version  0.4.3
+ * @author   rewish <rewish.org@gmail.com>
+ * @license  MIT License (https://github.com/rewish/jquery-bgswitcher/blob/master/LICENSE.md)
+ * @link     https://github.com/rewish/jquery-bgswitcher
+ */
+(function($) {
+  'use strict';
 
-html{
-    font-size:100%;
-}
+  var loadedImages = {},
 
-body{
-    line-height: 1.7;
-    margin:0px;
-    padding:0px;
-}
-a{
-    text-decoration: none;
-}
-img{
-    max-width:100%;
-}
-.nav{
-    display: flex;
-    justify-content:space-around;
-    background:white;
-    height:60px;
-    opacity:0.7;
-    margin-top:0px;
-}
-.navli{
-    line-height:40px;
-    list-style:none;
-    width:200px;
-    text-align:center;
-    font-size:15px;
-    font-weight:bolder;
-}
-.navli:hover{
-}
-.wrapper{
-    max-width:1100px;
-    margin:0 auto;
-    padding:0.4%;
-    text-align:center;
-}
-.wrapper2{
-    max-width:100vw;
-    margin:0 auto;
-    padding:0.4%;
-    text-align:center;
-}
-.home-content{
-    text-align:center;
-    margin-top:10%;
-    color:aliceblue;
-}
-.home-content p{
-    font-size:1.125rem;
-    margin:10px 0.42px;
-}
+      slice = Array.prototype.slice,
+      toString = Object.prototype.toString,
 
-.page-title{
-    font-size:5rem;
-    font-family: 'Philosopher',serif;
-    text-transform:uppercase;
-    font-weight:normal;
-    margin-bottom:0px;
-    margin-top:50px;
-    padding-top:0px;
-}
-.page-title2{
-    font-size:5rem;
-    font-family: 'Philosopher',serif;
-    text-transform:uppercase;
-    font-weight:normal;
-    margin-top:0px;
-    margin-bottom:0px;
-    padding-top:0px;
-}
+      corners = ['Top', 'Right', 'Bottom', 'Left'],
+      backgroundProperties = [
+        'Attachment', 'Color', 'Image', 'Repeat',
+        'Position', 'Size', 'Clip', 'Origin'
+      ];
 
-.button{
-    font-size:1.175rem;
-    background:#0bd;
-    color:#fff;
-    border-radius:5px;
-    padding:18px 32px;
-    margin:0 auto;
-    transition: 0.5s; 
-}
+  $.fn.bgswitcher = function() {
+    var args = arguments,
+        instanceKey = BgSwitcher.keys.instance;
 
-.button2{
-    font-size:1.175rem;
-    background:#0bd;
-    color:#fff;
-    border-radius:50px;
-    padding:25px 32px;
-    margin:0 auto;
-    font-size:25px;
-    transition: 0.5s; 
-}
+    return this.each(function() {
+      var instance = $.data(this, instanceKey);
 
+      if (!instance) {
+        instance = new BgSwitcher(this);
+        $.data(this, instanceKey, instance);
+      }
 
-.button:hover{
-    background:#0090aa;
-    padding:18px 42px;
-}
-.button2:hover{
-     background:#0090aa;
-    font-size:28px;
-    padding:28px 35px;
-}
+      instance.dispatch.apply(instance, args);
+    });
+  };
 
-#home{
-      margin:0px;
-    padding:0px;
-    background-image:url(image/main.jpg);
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-size: cover;
-    height: 100vh;
-    width:100vw;
-}
-#osusume{
-    background-image:url(image/top.jpg);
-    height:270px;
-    margin-bottom:40px;
-}
-#osusume .page-title{
-    text-align:center;
-}
-footer{
-    background:#432;
-    padding:26px 0px;
-    clear:both;
-}
-footer p{
-    color:#fff;
-    font-size:0.875rem;
-}
+  // Backward Compatibility
+  $.fn.bgSwitcher = $.fn.bgswitcher;
 
-article{
-    width:73%;
-}
+  /**
+   * BgSwitcher
+   *
+   * @param {HTMLElement} el
+   * @constructor
+   */
+  function BgSwitcher(el) {
+    this.$el = $(el);
+    this.index = 0;
+    this.config = $.extend({}, BgSwitcher.defaultConfig);
 
-aside{
-    width:24%;
-}
+    this._setupBackgroundElement();
+    this._listenToResize();
+  }
 
-.osusume-contents{
-    display:flex;
-    justify-content: space-between;
-    margin-bottom:50px;
-}
+  $.extend(BgSwitcher.prototype, {
+    /**
+     * Dispatch
+     *
+     * @param {string|Array} one
+     */
+    dispatch: function(one) {
+      switch (toString.call(one)) {
+        case '[object Object]':
+          this.setConfig(one);
+          break;
+        case '[object String]':
+          this[one].apply(this, slice.call(arguments, 1));
+          break;
+        default:
+          throw new Error('Please specify a Object or String');
+      }
+    },
 
-.post-info{
-    position:relative;
-    padding-top:4px;
-    margin-bottom:40px;
-}
-.post-date{
-    background:#0bd;
-    border-radius:50%;
-    color:#fff;
-    width:100px;
-    height:100px;
-    font-size:1.625rem;
-    text-align:center;
-    position:absolute;
-    top:0;
-    padding-top:5px;
-    line-height: 90px;
-    
-}
+    /**
+     * Set config
+     *
+     * @param {Object} config
+     */
+    setConfig: function(config) {
+      this.config = $.extend(this.config, config);
 
-.post-title{
-    font-family:"Yu mincho";
-    font-size:2rem;
-    font-weight:nomal;
+      if (typeof this.config.random !== 'undefined') {
+        this.config.shuffle = this.config.random;
+      }
 
-}
+      this.refresh();
+    },
 
-.post-tilte,{
-    margin-left:120px;
-}
-.gazo{
-     width: 600px; 
-    height: 350px;; 
-}
+    /**
+     * Set images
+     *
+     * @param {Array} images
+     */
+    setImages: function(images) {
+      this.imageList = new this.constructor.ImageList(images);
 
-.post-title{
-    
-    border-bottom:dotted 1px;
-}
-.kaisetu{
-    text-align:left;
-}
-.page-header{
-    padding:0px;
-    margin:0 auto;
-    width:100%;
-}
-.sticky {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 10px;
-}
+      if (this.config.shuffle) {
+        this.imageList.shuffle();
+      }
+    },
 
-.sub-title{
-    font-size:1.375rem;
-    padding:0 8px 8px;
-    border-bottom:2px #0bd solid;
-    font-weight:normal;
-}
+    /**
+     * Set switch handler
+     *
+     * @param {Function} fn
+     */
+    setSwitchHandler: function(fn) {
+      this.switchHandler = $.proxy(fn, this);
+    },
 
-.sub-manu{
-    margin-bottom:60px;
-    list-style:none;
-    padding-left:0px;
-}
-.sub-manu li{
-    border-bottom:1px #ddd solid;
-}
-.sub-manu a{
-    color:#432;
-    padding:10px;
-    display:block;
-}
-.sub-manu a:hover{
-    color:#0bd;
-}
-#topback{
-    float:right;
-    padding:0px;
-}
-#why{
-      margin:0px;
-    padding:0px;
-    background-image:url(image/why.jpg);
-     background-attachment: fixed;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-size: cover;
-    height: 100vh;
-    width:100%;
-}
-#why2{
-      margin:0px;
-    padding:0px;
-    background-image:url(image/why2.jpg);
-     background-attachment: fixed;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-size: cover;
-    height: 100vh;
-    width:100%;
-}
+    /**
+     * Default switch handler
+     *
+     * @param {string} type
+     * @returns {Function}
+     */
+    getBuiltInSwitchHandler: function(type) {
+      return this.constructor.switchHandlers[type || this.config.effect];
+    },
 
-.gazoubun{
-    display:flex;
-}
-.subsub{
-    font-size:1.775rem;
-    font-family:serif;
-}
+    /**
+     * Refresh
+     */
+    refresh: function() {
+      this.setImages(this.config.images);
+      this.setSwitchHandler(this.getBuiltInSwitchHandler());
+      this._prepareSwitching();
 
-.grid{
-    display:grid;
-    gap:26px;
-    grid-template-columns: 1fr 1fr;
-    margin-top:6%;
-    margin-bottom:50px;
-}
+      if (this.config.start) {
+        this.start();
+      }
+    },
 
+    /**
+     * Start switching
+     */
+    start: function() {
+      if (!this._timerID) {
+        this._timerID = setTimeout($.proxy(this, 'next'), this.config.interval);
+      }
+    },
 
+    /**
+     * Stop switching
+     */
+    stop: function() {
+      if (this._timerID) {
+        clearTimeout(this._timerID);
+        this._timerID = null;
+      }
+    },
 
-.figure-inner {
-  position: relative;
-  width: 400px;
-  -webkit-perspective: 1000;
-  perspective: 1000;
-  width: 400px;
-  height: 300px;
-  -webkit-transition: .5s;
-  transition: .5s;
-  -webkit-transform-style: preserve-3d;
-  transform-style: preserve-3d;
-    margin:0 auto;
-}
-.image,
-figcaption {
-  position: absolute;
-  width: 400px;
-  height: 300px;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-.image {
-  z-index: 2;
-}
-figcaption {
-  background: #fff;
-  border: 2px solid #666;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
-}
-figure:hover .figure-inner,
-figcaption {
-  -webkit-transform: rotateY(180deg);
-  transform: rotateY(180deg);
-}
-h3{
-    margin:5px;
-    padding:0px;
-}
+    /**
+     * Toggle between start/stop
+     */
+    toggle: function() {
+      if (this._timerID) {
+        this.stop();
+      } else {
+        this.start();
+      }
+    },
 
-.kaisetu2{
-    font-size:20px;
-    border:1px solid;
-    width:400px;
-    margin:0 auto;
-    border-radius:5px;
-    padding:0px;
-}
+    /**
+     * Reset switching
+     */
+    reset: function() {
+      this.index = 0;
+      this._prepareSwitching();
+    },
 
-.fadein {
-    opacity : 0.1;
-    transform : translate(0, 20px);
-    transition : all 700ms;
+    /**
+     * Go to next switching
+     */
+    next: function() {
+      var max = this.imageList.count();
+
+      if (!this.config.loop && this.index + 1 === max) {
+        return;
+      }
+
+      if (++this.index === max) {
+        this.index = 0;
+      }
+
+      this.switching();
+    },
+
+    /**
+     * Go to previous switching
+     */
+    prev: function() {
+      if (!this.config.loop && this.index === 0) {
+        return;
+      }
+
+      if (--this.index === -1) {
+        this.index = this.imageList.count() - 1;
+      }
+
+      this.switching();
+    },
+
+    /**
+     * Select the switching at index
+     *
+     * @param {number} index
+     */
+    select: function(index) {
+      if (index === -1) {
+        index = this.imageList.count() - 1;
+      }
+
+      this.index = index;
+      this.switching();
+    },
+
+    /**
+     * Switching the background image
+     */
+    switching: function() {
+      var started = !!this._timerID;
+
+      if (started) {
+        this.stop();
+      }
+
+      this._createSwitchableElement();
+      this._prepareSwitching();
+      this.switchHandler(this.$switchable);
+
+      if (started) {
+        this.start();
+      }
+    },
+
+    /**
+     * Destroy...
+     */
+    destroy: function() {
+      this.stop();
+      this._stopListeningToResize();
+
+      if (this.$switchable) {
+        this.$switchable.stop();
+        this.$switchable.remove();
+        this.$switchable = null;
+      }
+
+      if (this.$bg) {
+        this.$bg.remove();
+        this.$bg = null;
+      }
+
+      this.$el.removeAttr('style');
+      this.$el.removeData(this.constructor.keys.instance);
+      this.$el = null;
+    },
+
+    /**
+     * Adjust rectangle
+     */
+    _adjustRectangle: function() {
+      var corner,
+          i = 0,
+          length = corners.length,
+          offset = this.$el.position(),
+          copiedStyles = {
+            top: offset.top,
+            left: offset.left,
+            width: this.$el.innerWidth(),
+            height: this.$el.innerHeight()
+          };
+
+      for (; i < length; i++) {
+        corner = corners[i];
+        copiedStyles['margin' + corner] = this.$el.css('margin' + corner);
+        copiedStyles['border' + corner] = this.$el.css('border' + corner);
+      }
+
+      this.$bg.css(copiedStyles);
+    },
+
+    /**
+     * Setup background element
+     */
+    _setupBackgroundElement: function() {
+      this.$bg = $(document.createElement('div'));
+      this.$bg.css({
+        position: 'absolute',
+        zIndex: (parseInt(this.$el.css('zIndex'), 10) || 0) - 1,
+        overflow: 'hidden'
+      });
+
+      this._copyBackgroundStyles();
+      this._adjustRectangle();
+
+      if (this.$el[0].tagName === 'BODY') {
+        this.$el.prepend(this.$bg);
+      } else {
+        this.$el.before(this.$bg);
+        this.$el.css('background', 'none');
+      }
+    },
+
+    /**
+     * Create switchable element
+     */
+    _createSwitchableElement: function() {
+      if (this.$switchable) {
+        this.$switchable.remove();
+      }
+
+      this.$switchable = this.$bg.clone();
+      this.$switchable.css({top: 0, left: 0, margin: 0, border: 'none'});
+      this.$switchable.appendTo(this.$bg);
+    },
+
+    /**
+     * Copy background styles
+     */
+    _copyBackgroundStyles: function () {
+      var prop,
+          copiedStyle = {},
+          i = 0,
+          length = backgroundProperties.length,
+          backgroundPosition = 'backgroundPosition';
+
+      for (; i < length; i++) {
+        prop = 'background' + backgroundProperties[i];
+        copiedStyle[prop] = this.$el.css(prop);
+      }
+
+      // For IE<=9
+      if (copiedStyle[backgroundPosition] === undefined) {
+        copiedStyle[backgroundPosition] = [
+          this.$el.css(backgroundPosition + 'X'),
+          this.$el.css(backgroundPosition + 'Y')
+        ].join(' ');
+      }
+
+      this.$bg.css(copiedStyle);
+    },
+
+    /**
+     * Listen to the resize event
+     */
+    _listenToResize: function() {
+      var that = this;
+      this._resizeHandler = function() {
+        that._adjustRectangle();
+      };
+      $(window).on('resize', this._resizeHandler);
+    },
+
+    /**
+     * Stop listening to the resize event
+     */
+    _stopListeningToResize: function() {
+      $(window).off('resize', this._resizeHandler);
+      this._resizeHandler = null;
+    },
+
+    /**
+     * Prepare the Switching
+     */
+    _prepareSwitching: function() {
+      this.$bg.css('backgroundImage', this.imageList.url(this.index));
     }
+  });
 
-/* 画面内に入った状態 */
-.fadein.scrollin {
-    opacity : 1;
-    transform : translate(0, 0);
+  /**
+   * Data Keys
+   * @type {Object}
+   */
+  BgSwitcher.keys = {
+    instance: 'bgSwitcher'
+  };
+
+  /**
+   * Default Config
+   * @type {Object}
+   */
+  BgSwitcher.defaultConfig = {
+    images: [],
+    interval: 5000,
+    start: true,
+    loop: true,
+    shuffle: false,
+    effect: 'fade',
+    duration: 1000,
+    easing: 'swing'
+  };
+
+  /**
+   * Built-In switch handlers (effects)
+   * @type {Object}
+   */
+  BgSwitcher.switchHandlers = {
+    fade: function($el) {
+      $el.animate({opacity: 0}, this.config.duration, this.config.easing);
+    },
+
+    blind: function($el) {
+      $el.animate({height: 0}, this.config.duration, this.config.easing);
+    },
+
+    clip: function($el) {
+      $el.animate({
+        top: parseInt($el.css('top'), 10) + $el.height() / 2,
+        height: 0
+      }, this.config.duration, this.config.easing);
+    },
+
+    slide: function($el) {
+      $el.animate({top: -$el.height()}, this.config.duration, this.config.easing);
+    },
+
+    drop: function($el) {
+      $el.animate({
+        left: -$el.width(),
+        opacity: 0
+      }, this.config.duration, this.config.easing);
+    },
+
+    hide: function($el) {
+      $el.hide();
     }
+  };
 
-#whywhy{
-    box-sizing:border-box;
-}
+  /**
+   * Define effect
+   *
+   * @param {String} name
+   * @param {Function} fn
+   */
+  BgSwitcher.defineEffect = function(name, fn) {
+    this.switchHandlers[name] = fn;
+  };
 
-.bg-slider {
-	width: 100vw;
-	height: 100vh;
-	background-position:center center;
-	background-size: cover;
-	align-items: center;
-	justify-content: center;
-}
+  /**
+   * BgSwitcher.ImageList
+   *
+   * @param {Array} images
+   * @constructor
+   */
+  BgSwitcher.ImageList = function(images) {
+    this.images = images;
+    this.createImagesBySequence();
+    this.preload();
+  };
 
-@import url(https://fonts.googleapis.com/css?family=Raleway:400,500);
-.snip1189 {
-  font-family: 'Raleway', Arial, sans-serif;
-  text-align: center;
-  text-transform: uppercase;
-  font-weight: 500;
-  letter-spacing: 1px;
-}
-.snip1189 * {
-  -webkit-box-sizing: border-box;
-  box-sizing: border-box;
-  -webkit-transition: all 0.35s ease;
-  transition: all 0.35s ease;
-}
-.snip1189 li {
-  display: inline-block;
-  list-style: outside none none;
-  margin: 0 1em;
-  padding: 0;
-}
-.snip1189 a {
-  padding: 0.5em 0.8em;
-  margin: 0.2em 0;
-  display: block;
-  color: rgba(10, 10, 10, 0.5);
-  position: relative;
-  text-decoration: none;
-}
-.snip1189 a:before,
-.snip1189 a:after {
-  height: 14px;
-  width: 14px;
-  position: absolute;
-  content: '';
-  -webkit-transition: all 0.35s ease;
-  transition: all 0.35s ease;
-  opacity: 0;
-}
-.snip1189 a:before {
-  left: 0;
-  top: 0;
-  border-left: 3px solid #c0392b;
-  border-top: 3px solid #c0392b;
-  -webkit-transform: translate(100%, 50%);
-  transform: translate(100%, 50%);
-}
-.snip1189 a:after {
-  right: 0;
-  bottom: 0;
-  border-right: 3px solid #c0392b;
-  border-bottom: 3px solid #c0392b;
-  -webkit-transform: translate(-100%, -50%);
-  transform: translate(-100%, -50%);
-}
-.snip1189 a:hover,
-.snip1189 .current a {
-  color:brown;
-}
-.snip1189 a:hover:before,
-.snip1189 .current a:before,
-.snip1189 a:hover:after,
-.snip1189 .current a:after {
-  -webkit-transform: translate(0%, 0%);
-  transform: translate(0%, 0%);
-  opacity: 1;
-}
+  $.extend(BgSwitcher.ImageList.prototype, {
+    /**
+     * Images is sequenceable
+     *
+     * @returns {boolean}
+     */
+    isSequenceable: function() {
+      return typeof this.images[0] === 'string' &&
+          typeof this.images[1] === 'number' &&
+          typeof this.images[2] === 'number';
+    },
 
+    /**
+     * Create an images by sequence
+     */
+    createImagesBySequence: function() {
+      if (!this.isSequenceable()) {
+        return;
+      }
+
+      var images = [],
+          base = this.images[0],
+          min = this.images[1],
+          max = this.images[2];
+
+      do {
+        images.push(base.replace(/\.\w+$/, min + '$&'));
+      } while (++min <= max);
+
+      this.images = images;
+    },
+
+    /**
+     * Preload an images
+     */
+    preload: function() {
+      var path,
+          length = this.images.length,
+          i = 0;
+
+      for (; i < length; i++) {
+        path = this.images[i];
+        if (!loadedImages[path]) {
+          loadedImages[path] = new Image();
+          loadedImages[path].src = path;
+        }
+      }
+    },
+
+    /**
+     * Shuffle an images
+     */
+    shuffle: function() {
+      var j, t,
+          i = this.images.length,
+          original = this.images.join();
+
+      if (!i) {
+        return;
+      }
+
+      while (i) {
+        j = Math.floor(Math.random() * i);
+        t = this.images[--i];
+        this.images[i] = this.images[j];
+        this.images[j] = t;
+      }
+
+      if (this.images.join() === original) {
+        this.shuffle();
+      }
+    },
+
+    /**
+     * Get the image from index
+     *
+     * @param {number} index
+     * @returns {string}
+     */
+    get: function(index) {
+      return this.images[index];
+    },
+
+    /**
+     * Get the URL with function of CSS
+     *
+     * @param {number} index
+     * @returns {string}
+     */
+    url: function(index) {
+      return 'url(' + this.get(index) + ')';
+    },
+
+    /**
+     * Count of images
+     *
+     * @returns {number}
+     */
+    count: function() {
+      return this.images.length;
+    }
+  });
+
+  $.BgSwitcher = BgSwitcher;
+}(jQuery));
